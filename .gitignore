@@ -1,2 +1,5 @@
 venv/
 jut.md
+.idea/
+__pycache__/
+jut.egg-info/
