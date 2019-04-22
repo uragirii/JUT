@@ -60,7 +60,8 @@ class Project:
             self.startDate = datetime.datetime.now().replace(microsecond=0).isoformat()
             click.echo("\nStart Date: {0}".format(self.startDate))
             self.comments = []
-            self.jver = 'K'
+            # Reached to 'KON0'
+            self.jver = 'O'
             # now dump to json file.
             self._dump_json()
             click.secho('The `jut.json` has been successfully created', fg='green')
@@ -78,6 +79,7 @@ class Project:
         comment_data = (str(datetime.datetime.now().replace(microsecond=0).isoformat()), comment)
         self.comments.insert(0, comment_data)
         # Now write data again.
+        # todo: implement a faster way to write to json file. rn I'm just reading and "writing" not altering the file.
         self._dump_json()
         click.secho("Successfully added comment {} at time {}".format(comment, comment_data[0]), fg="green")
 
@@ -96,10 +98,36 @@ class Project:
                 raise click.Abort
 
         tag_data = (str(datetime.datetime.now().replace(microsecond=0).isoformat()), tag_msg)
-        self.tags[tag_name.upper()] = tag_data
+        self.tags[tag_name.upper()].insert(0, tag_data)
         click.secho("Successfully added '{}' to tag '{}' at time {}".format(tag_msg, tag_name.upper(), tag_data[0]),
                     fg="green")
+        # todo: implement a faster way to write to json file. rn I'm just reading and "writing" not altering the file.
         self._dump_json()
+
+    def show_comment(self):
+        '''
+        Show last 3 comments
+        '''
+        i = 0
+        for comment in self.comments:
+            click.secho("comment {}".format(comment[1]), fg='yellow')
+            click.echo('Date {}\n'.format(comment[0]))
+            i+=1
+            if i==3:
+                break
+
+    def show_tag(self, tag):
+        """
+        Show all the tags of the given tags
+        """
+
+        if tag.upper() not in self.tags.keys():
+            raise click.Abort
+        click.secho(tag.upper(), fg="green")
+        for tags in self.tags[tag.upper()]:
+            click.secho("Tagged Comment {}".format(tags[1]), fg='yellow')
+            click.echo('Date {}\n'.format(tags[0]))
+
 
     def print_proj(self):
         print(self.__dict__)
@@ -108,10 +136,10 @@ class Project:
 @click.group(invoke_without_command = True)
 def cli():
     # click.clear()
-    click.secho("="*25, fg="green")
+    click.secho("="*25, fg="yellow")
     click.secho("\nThis is development version.Please bear for any mistakes", fg="red")
     click.secho("\nIf you find any error or bug please mail me at \n\t mldata.apoorv@gmail.com\n", fg="red")
-    click.secho("="*25, fg="green")
+    click.secho("="*25, fg="yellow")
     click.pause("(Press any key to continue)")
     # click.clear()
 
@@ -131,31 +159,38 @@ def init():
 
 
 @cli.command()
-@click.option('--tag', '-t', help="Name of the tag to be shown", required = False)
-def show(tag):
+@click.option('--comment', '-c', is_flag=True)
+@click.option('--tag', '-t', multiple = True)
+def show(comment, tag):
     """
     Displays the comments  or tags
     """
     # Search and use pager by click
-    pass
+    if not comment and tag:
+        raise click.Abort
+
+    new_proj = Project()
+    if comment:
+        new_proj.show_comment()
+    for t in tag:
+        new_proj.show_tag(t)
 
 
 @cli.command()
-@click.option('-c', '--comment', nargs=1)
-@click.option('-t', '--tag', nargs=2)
-# @click.option('-tag', '--t', default="", nargs=2)
+@click.option('-c', '--comment', nargs=1, help='The comment that needs to be added to the file')
+@click.option('-t', '--tag', nargs=2, help="The tag name and the value that needs to be added to the file.")
 def add(comment, tag):
     """
     Adds new comments or tagged comment
     """
     new_proj = Project()
     # The initialization of class checks whether the file is present or not
-    # todo: implement a faster way to write to json file. rn I'm just reading and "writing" not altering the file.
+
     if comment is None and tag is None:
         raise click.Abort
     else:
         # If comment is None, it will be checked by the class.
         new_proj.add_comment(comment)
-        if all(tag):
+        if len(tag) == 2:
             new_proj.add_tag(tag)
 
